@@ -1117,9 +1117,11 @@ class NamespaceWrapper {
         let candidatePublicKey = keys[i];
         console.log('FOR CANDIDATE KEY', candidatePublicKey);
         let candidateKeyPairPublicKey = new PublicKey(keys[i]);
-        if (candidatePublicKey == submitterPubkey) {
-          console.log('YOU CANNOT VOTE ON YOUR OWN SUBMISSIONS');
-        } else {
+        // if (candidatePublicKey == submitterPubkey) {
+        //   console.log('YOU CANNOT VOTE ON YOUR OWN SUBMISSIONS');
+        // } else 
+        
+        {
           try {
             console.log(
               'SUBMISSION VALUE TO CHECK',
@@ -1142,24 +1144,24 @@ class NamespaceWrapper {
                 submissions_audit_trigger[candidatePublicKey]
               ) {
                 console.log('VOTING TRUE ON AUDIT');
-                const response = await this.auditSubmission(
-                  candidateKeyPairPublicKey,
-                  isValid,
-                  submitterAccountKeyPair,
-                  round,
-                );
-                console.log('RESPONSE FROM AUDIT FUNCTION', response);
+                // const response = await this.auditSubmission(
+                //   candidateKeyPairPublicKey,
+                //   isValid,
+                //   submitterAccountKeyPair,
+                //   round,
+                // );
+                // console.log('RESPONSE FROM AUDIT FUNCTION', response);
               }
             } else if (isValid == false) {
               // Call auditSubmission function and isValid is passed as false
               console.log('RAISING AUDIT / VOTING FALSE');
-              const response = await this.auditSubmission(
-                candidateKeyPairPublicKey,
-                isValid,
-                submitterAccountKeyPair,
-                round,
-              );
-              console.log('RESPONSE FROM AUDIT FUNCTION', response);
+              // const response = await this.auditSubmission(
+              //   candidateKeyPairPublicKey,
+              //   isValid,
+              //   submitterAccountKeyPair,
+              //   round,
+              // );
+              // console.log('RESPONSE FROM AUDIT FUNCTION', response);
             }
           } catch (err) {
             console.log('ERROR IN ELSE CONDITION', err);
