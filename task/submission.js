@@ -43,12 +43,17 @@ class Submission {
         'current slot while calling submit',
       );
       const submission = await this.fetchSubmission(roundNumber);
+      if(submission){
       console.log('SUBMISSION', submission);
       await namespaceWrapper.checkSubmissionAndUpdateRound(
         submission,
         roundNumber,
       );
       console.log('after the submission call');
+      }
+      else {
+        console.log('no submission call made as submission is null');
+      }
       return submission;
     } catch (error) {
       console.log('error in submission', error);

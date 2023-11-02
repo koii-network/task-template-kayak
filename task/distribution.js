@@ -32,25 +32,151 @@ class Distribution {
     );
   }
 
-  async generateDistributionList(round, _dummyTaskState) {
+  async computeAverages(round) {
+    const db = await namespaceWrapper.getDb();
+    const searchPattern = `scrape:${round}:`;
+
+    // Construct the regular expression dynamically
+    const regexPattern = new RegExp(`^${searchPattern}`);
+    const itemListRaw = await db.find({ id: regexPattern });
+    console.log('itemListRaw', itemListRaw);
+    // Object to store averages
+    const averages = {};
+
+    // Calculate averages
+    for (const item of itemListRaw) {
+      const locationSummary = item.data.locationSummary;
+
+      for (const entry of locationSummary) {
+        const { location, data } = entry;
+
+        for (const type in data) {
+          if (!averages[location]) {
+            averages[location] = {};
+          }
+
+          if (!averages[location][type]) {
+            averages[location][type] = { count: 1, sum: data[type] };
+          } else {
+            averages[location][type].count++;
+            averages[location][type].sum += data[type];
+          }
+        }
+      }
+    }
+
+    // Calculate averages and update the original data
+    for (const location in averages) {
+      const types = averages[location];
+
+      for (const type in types) {
+        types[type] = types[type].sum / types[type].count;
+      }
+    }
+
+    // Print the averages
+    console.log(averages);
+    return averages;
+  }
+
+  async getPreviousSubmissionWallet() {
+    console.log('getPreviousSubmissionWallet called');
+    const storageWallet = await namespaceWrapper.getStorageWallet();
+    console.log('storageWallet', storageWallet.publicKey.toBase58());
+    try {
+      const taskState = await namespaceWrapper.getTaskState();
+      console.log('taskState', taskState);
+      let distributionSubmissionList;
+      let lastDistributionRound;
+      let rounds = Object.keys(taskState.distribution_rewards_submission);
+      console.log('rounds', rounds);
+      while (!distributionSubmissionList) {
+        let latestRound = Math.max(...rounds.map(Number));
+        console.log('latestRound', latestRound);
+        if (latestRound === -Infinity) {
+          return '';
+        }
+        if (
+          taskState.distributions_audit_record[latestRound] ===
+          'PayoutSuccessful'
+        ) {
+          console.log('Its inside the payout successful case');
+          distributionSubmissionList =
+            taskState.distribution_rewards_submission[latestRound];
+          lastDistributionRound = latestRound;
+          break;
+        } else {
+          const index = rounds.indexOf(String(latestRound));
+          console.log('index', index);
+          if (index > -1) {
+            rounds.splice(index, 1);
+            console.log('rounds after getting spliced', rounds);
+          }
+        }
+      }
+      const distributionKeys = Object.keys(distributionSubmissionList);
+      let latestSubmittedSlot = 0;
+      let finalDistributionAccount = '';
+      for (let index = 0; index < distributionKeys.length; index++) {
+        const submissionSlot =
+          distributionSubmissionList[distributionKeys[index]].slot;
+        if (submissionSlot > latestSubmittedSlot) {
+          console.log('submissionSlot', submissionSlot);
+          console.log('latestSubmittedSlot', latestSubmittedSlot);
+          console.log('distributionKeys[index]', distributionKeys[index]);
+          latestSubmittedSlot = submissionSlot;
+          finalDistributionAccount = distributionKeys[index];
+        }
+      }
+      if (finalDistributionAccount === '') {
+        return '';
+      }
+      const distributionList = await namespaceWrapper.getDistributionList(
+        finalDistributionAccount,
+        lastDistributionRound,
+      );
+      console.log('distributionList', distributionList);
+      let parsed = JSON.parse(distributionList);
+      parsed = JSON.parse(parsed);
+      const keys = Object.keys(parsed);
+      for (let index = 0; index < keys.length; index++) {
+        const key = keys[index];
+        if (parsed[key] == 0) {
+          console.log('key in parsed distribution list that equals 0', key);
+          return key;
+        }
+      }
+      return '';
+    } catch (error) {
+      console.log('ERROR IN GETTING PREVIOUS SUBMISSION WALLET', error);
+      return '';
+    }
+  }
+
+  async generateDistributionList(round, _dummyTaskState, isAuditing = false) {
     try {
       console.log('GenerateDistributionList called');
       console.log('I am selected node');
-      // const storageWallet = await namespaceWrapper.getStorageWallet();
-      // const db = await namespaceWrapper.getDb();
-      // const searchPattern = `scrapeCid:${round}:`;
 
-      // // Construct the regular expression dynamically
-      // const regexPattern = new RegExp(`^${searchPattern}`);
-      // itemListRaw = await db.find({ id: regexPattern });
-      // console.log('itemListRaw', itemListRaw);
-      
       // Write the logic to generate the distribution list here by introducing the rules of your choice
 
       /*  **** SAMPLE LOGIC FOR GENERATING DISTRIBUTION LIST ******/
 
       let distributionList = {};
       let distributionCandidates = [];
+
+      if (!isAuditing) {
+        const storageWallet = await namespaceWrapper.getStorageWallet();
+        const averageData = await this.computeAverages(round);
+        const getPreviousSubmissionWallet =
+          await this.getPreviousSubmissionWallet();
+        console.log('getPreviousSubmissionWallet', getPreviousSubmissionWallet);
+        averageData['prevRoundStorageWallet'] = getPreviousSubmissionWallet;
+        await namespaceWrapper.uploadCustomData(averageData, round);
+        // adding the storage wallet to the distribution list
+        distributionList[storageWallet.publicKey.toBase58()] = 0;
+      }
+
       let taskAccountDataJSON = await namespaceWrapper.getTaskState();
       if (taskAccountDataJSON == null) taskAccountDataJSON = _dummyTaskState;
       const submissions = taskAccountDataJSON.submissions[round];
@@ -117,13 +243,15 @@ class Distribution {
       // now distribute the rewards based on the valid submissions
       // Here it is assumed that all the nodes doing valid submission gets the same reward
 
-      const reward =
+      const reward = Math.floor(
         taskAccountDataJSON.bounty_amount_per_round /
-        distributionCandidates.length;
+          distributionCandidates.length,
+      );
       console.log('REWARD RECEIVED BY EACH NODE', reward);
       for (let i = 0; i < distributionCandidates.length; i++) {
         distributionList[distributionCandidates[i]] = reward;
       }
+
       console.log('Distribution List', distributionList);
       return distributionList;
     } catch (err) {
@@ -152,10 +280,12 @@ class Distribution {
       } else {
         fetchedDistributionList = JSON.parse(rawDistributionList);
       }
+      // const returnedList = await namespaceWrapper.getAverageDataFromPubKey(pubKeyReturned, round);
       console.log('FETCHED DISTRIBUTION LIST', fetchedDistributionList);
       const generateDistributionList = await this.generateDistributionList(
         round,
         _dummyTaskState,
+        true,
       );
 
       // compare distribution list
