@@ -2,7 +2,7 @@ const { Connection, PublicKey } = require('@_koi/web3.js');
 
 async function test() {
   const connection = new Connection('https://testnet.koii.live');
-  const taskId = '5TN6A7QGmtBT2XFpafbGiLJ1BpjoMF2XUzYnycmKWCXs'; // task ID
+  const taskId = 'Cjd1Hg6N1GqCNMA35wmhS9LfsHTbSRrpBJgKLjbJtMQA'; // task ID
 
   const accountInfo = await connection.getAccountInfo(new PublicKey(taskId));
   if (!accountInfo) {
@@ -25,7 +25,7 @@ async function test() {
   );
 
   distributionListDataBlob = JSON.parse(
-    distributionListDataBlob.data.toString(),
+    distributionListDataBlob.data + '',
   );
   const bufferData = Buffer.from(
     distributionListDataBlob[latestSuccessfulRound][taskId],

@@ -71,7 +71,8 @@ async function setup() {
 
   //GET ROUND
 
-  const round = await namespaceWrapper.getRound();
+  // const round = await namespaceWrapper.getRound();
+  // await coreLogic.submitDistributionList(2);
   //await namespaceWrapper.createDataStorageWallet();
   // console.log("ROUND", round);
   // const dumbJson = {
