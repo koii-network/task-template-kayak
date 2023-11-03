@@ -19,7 +19,7 @@ class Audit {
 
       // Construct the regular expression dynamically
       const regexPattern = new RegExp(`^${searchPattern}`);
-      const itemListRaw = await db.find({ id: 'edvwev' });
+      const itemListRaw = await db.find({ id: regexPattern });
       console.log('itemListRaw', itemListRaw);
 
       // check if the data is same as the original data
