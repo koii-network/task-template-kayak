@@ -1119,8 +1119,7 @@ class NamespaceWrapper {
         let candidateKeyPairPublicKey = new PublicKey(keys[i]);
         // if (candidatePublicKey == submitterPubkey) {
         //   console.log('YOU CANNOT VOTE ON YOUR OWN SUBMISSIONS');
-        // } else 
-        
+        // } else
         {
           try {
             console.log(
@@ -1132,36 +1131,41 @@ class NamespaceWrapper {
 
             if (isValid) {
               // check for the submissions_audit_trigger , if it exists then vote true on that otherwise do nothing
+
+              console.log('IN IF', isValid);
               const submissions_audit_trigger =
                 taskAccountDataJSON.submissions_audit_trigger[round];
               console.log('SUBMIT AUDIT TRIGGER', submissions_audit_trigger);
-              // console.log(
-              //   "CANDIDATE PUBKEY CHECK IN AUDIT TRIGGER",
-              //   submissions_audit_trigger[candidatePublicKey]
-              // );
+              console.log(
+                'CANDIDATE PUBKEY CHECK IN AUDIT TRIGGER',
+                submissions_audit_trigger[candidatePublicKey],
+              );
               if (
                 submissions_audit_trigger &&
                 submissions_audit_trigger[candidatePublicKey]
               ) {
                 console.log('VOTING TRUE ON AUDIT');
-                // const response = await this.auditSubmission(
-                //   candidateKeyPairPublicKey,
-                //   isValid,
-                //   submitterAccountKeyPair,
-                //   round,
-                // );
-                // console.log('RESPONSE FROM AUDIT FUNCTION', response);
+                const response = await this.auditSubmission(
+                  candidateKeyPairPublicKey,
+                  isValid,
+                  submitterAccountKeyPair,
+                  round,
+                );
+                console.log('RESPONSE FROM AUDIT FUNCTION', response);
               }
             } else if (isValid == false) {
               // Call auditSubmission function and isValid is passed as false
               console.log('RAISING AUDIT / VOTING FALSE');
-              // const response = await this.auditSubmission(
-              //   candidateKeyPairPublicKey,
-              //   isValid,
-              //   submitterAccountKeyPair,
-              //   round,
-              // );
-              // console.log('RESPONSE FROM AUDIT FUNCTION', response);
+              const response = await this.auditSubmission(
+                candidateKeyPairPublicKey,
+                isValid,
+                submitterAccountKeyPair,
+                round,
+              );
+              console.log('RESPONSE FROM AUDIT FUNCTION', response);
+            } else if (isValid == undefined) {
+              console.log('IN ELSE', isValid);
+              console.log('DO NOTHING');
             }
           } catch (err) {
             console.log('ERROR IN ELSE CONDITION', err);
