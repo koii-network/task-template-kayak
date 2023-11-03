@@ -92,7 +92,7 @@ async function setup() {
 
   // Audit submissions
 
-  await coreLogic.auditTask(210);
+  //await coreLogic.auditTask(round - 1);
 
   // upload distribution list to K2
 
