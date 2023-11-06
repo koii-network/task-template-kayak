@@ -1,4 +1,6 @@
 const { Web3Storage, File } = require('web3.storage');
+const dataFromCid = require('../helpers/dataFromCid');
+const deepEqual = require('../helpers/objectComparison');
 const { namespaceWrapper } = require('../_koiiNode/koiiNode');
 class Distribution {
   async submitDistributionList(round) {
@@ -256,7 +258,10 @@ class Distribution {
         distributionList[distributionCandidates[i]] = reward;
       }
 
-      console.log('Distribution List', distributionList);
+      console.log(
+        '***********Distribution List***************',
+        distributionList,
+      );
       return distributionList;
     } catch (err) {
       console.log('ERROR IN GENERATING DISTRIBUTION LIST', err);
@@ -279,7 +284,6 @@ class Distribution {
         round,
       );
 
-      console.log('RAW DISTRIBUTION LIST', rawDistributionList);
       let fetchedDistributionList;
       if (rawDistributionList == null) {
         fetchedDistributionList = _dummyDistributionList;
@@ -287,7 +291,7 @@ class Distribution {
         console.log('RAW DISTRIBUTION LIST', rawDistributionList);
         fetchedDistributionList = JSON.parse(rawDistributionList);
       }
-      // const returnedList = await namespaceWrapper.getAverageDataFromPubKey(pubKeyReturned, round);
+      //const returnedList = await namespaceWrapper.getAverageDataFromPubKey(pubKeyReturned, round);
       console.log('FETCHED DISTRIBUTION LIST', fetchedDistributionList);
       // const generateDistributionList = await this.generateDistributionList(
       //   round,
@@ -297,9 +301,73 @@ class Distribution {
 
       // compare distribution list
 
-      const parsed = fetchedDistributionList;
+      const parsedList = JSON.parse(fetchedDistributionList);
 
-      console.log('parsed', parsed);
+      // get the key whose value is 0
+      let pubKeyReturned;
+
+      for (const key in parsedList) {
+        if (parsedList[key] === 0) {
+          pubKeyReturned = key;
+          break;
+        }
+      }
+
+      console.log('pubKeyReturned', pubKeyReturned);
+
+      // Now fetch the original list using getDistributionList
+
+      const checkDistributionList = await namespaceWrapper.getDistributionList(
+        pubKeyReturned,
+        round,
+      );
+
+      const fetchedCheckDistributionList = JSON.parse(checkDistributionList);
+      const parsedCheckDistributionList = JSON.parse(
+        fetchedCheckDistributionList,
+      );
+
+      console.log('checkDistributionList', parsedCheckDistributionList);
+      console.log(parsedCheckDistributionList.avgData);
+      console.log(parsedCheckDistributionList.prevRoundStorageWallet);
+
+      // get the average data from the cid
+      const averageDataFetched = await dataFromCid(
+        parsedCheckDistributionList.avgData,
+      );
+
+      console.log(
+        '********averageDataFetched**********',
+        averageDataFetched.data,
+      );
+
+      // comparing values
+
+      const averageData = await this.computeAverages(round);
+      console.log('******************averageData**************', averageData);
+
+      const isEqual = await deepEqual(averageDataFetched.data, averageData);
+
+      console.log('isEqual', isEqual);
+
+      const getPreviousSubmissionWallet =
+        await this.getPreviousSubmissionWallet();
+      console.log(
+        '******************getPreviousSubmissionWallet****************',
+        getPreviousSubmissionWallet,
+      );
+
+      const isEqualPrevWallet =
+        getPreviousSubmissionWallet ===
+        parsedCheckDistributionList.prevRoundStorageWallet;
+
+      console.log('isEqualPrevWallet', isEqualPrevWallet);
+
+      if (isEqual && isEqualPrevWallet) {
+        console.log('######################EQUAL###########');
+        return true;
+      }
+
       // console.log(
       //   'compare distribution list',
       //   parsed,
@@ -339,19 +407,19 @@ class Distribution {
   }
 
   async uploadToIPFS(data) {
-    const client = new Web3Storage({ token: process.env.SECRET_WEB3_STORAGE_KEY });
+    const client = new Web3Storage({
+      token: process.env.SECRET_WEB3_STORAGE_KEY,
+    });
     const files = await this.makeFileObjects(data);
     const cid = await client.put(files);
     console.log('stored files with cid:', cid);
     return cid;
   }
 
-  async makeFileObjects (obj) {
-    const buffer = Buffer.from(JSON.stringify(obj))
-    const files = [
-      new File([buffer], 'data.json')
-    ]
-    return files
+  async makeFileObjects(obj) {
+    const buffer = Buffer.from(JSON.stringify(obj));
+    const files = [new File([buffer], 'data.json')];
+    return files;
   }
 }
 

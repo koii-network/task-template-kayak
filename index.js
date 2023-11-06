@@ -100,7 +100,7 @@ async function setup() {
 
   // Audit distribution list
 
-  await coreLogic.auditDistribution(251);
+  //await coreLogic.auditDistribution(11);
 
   // Payout trigger
 

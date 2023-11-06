@@ -1206,11 +1206,9 @@ class NamespaceWrapper {
           let candidatePublicKey = keys[i];
           console.log('FOR CANDIDATE KEY', candidatePublicKey);
           let candidateKeyPairPublicKey = new PublicKey(keys[i]);
-          // if (candidatePublicKey == submitterPubkey) {
-          //   console.log('YOU CANNOT VOTE ON YOUR OWN DISTRIBUTION SUBMISSIONS');
-          // } else
-
-          {
+          if (candidatePublicKey == submitterPubkey) {
+            console.log('YOU CANNOT VOTE ON YOUR OWN DISTRIBUTION SUBMISSIONS');
+          } else {
             try {
               console.log(
                 'DISTRIBUTION SUBMISSION VALUE TO CHECK',
@@ -1242,30 +1240,30 @@ class NamespaceWrapper {
                   distributions_audit_trigger[candidatePublicKey]
                 ) {
                   console.log('VOTING TRUE ON DISTRIBUTION AUDIT');
-                  // const response = await this.distributionListAuditSubmission(
-                  //   candidateKeyPairPublicKey,
-                  //   isValid,
-                  //   submitterAccountKeyPair,
-                  //   round,
-                  // );
-                  // console.log(
-                  //   'RESPONSE FROM DISTRIBUTION AUDIT FUNCTION',
-                  //   response,
-                  // );
+                  const response = await this.distributionListAuditSubmission(
+                    candidateKeyPairPublicKey,
+                    isValid,
+                    submitterAccountKeyPair,
+                    round,
+                  );
+                  console.log(
+                    'RESPONSE FROM DISTRIBUTION AUDIT FUNCTION',
+                    response,
+                  );
                 }
               } else if (isValid == false) {
                 // Call auditSubmission function and isValid is passed as false
-                // console.log('RAISING AUDIT / VOTING FALSE ON DISTRIBUTION');
-                // const response = await this.distributionListAuditSubmission(
-                //   candidateKeyPairPublicKey,
-                //   isValid,
-                //   submitterAccountKeyPair,
-                //   round,
-                // );
-                // console.log(
-                //   'RESPONSE FROM DISTRIBUTION AUDIT FUNCTION',
-                //   response,
-                // );
+                console.log('RAISING AUDIT / VOTING FALSE ON DISTRIBUTION');
+                const response = await this.distributionListAuditSubmission(
+                  candidateKeyPairPublicKey,
+                  isValid,
+                  submitterAccountKeyPair,
+                  round,
+                );
+                console.log(
+                  'RESPONSE FROM DISTRIBUTION AUDIT FUNCTION',
+                  response,
+                );
               }
             } catch (err) {
               console.log('ERROR IN ELSE CONDITION FOR DISTRIBUTION', err);
