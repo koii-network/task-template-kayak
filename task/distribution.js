@@ -272,42 +272,46 @@ class Distribution {
     // Write your logic for the validation of submission value here and return a boolean value in response
     // this logic can be same as generation of distribution list function and based on the comparision will final object , decision can be made
 
-    // try {
-    //   console.log('Distribution list Submitter', distributionListSubmitter);
-    //   const rawDistributionList = await namespaceWrapper.getDistributionList(
-    //     distributionListSubmitter,
-    //     round,
-    //   );
-    //   let fetchedDistributionList;
-    //   if (rawDistributionList == null) {
-    //     fetchedDistributionList = _dummyDistributionList;
-    //   } else {
-    //     fetchedDistributionList = JSON.parse(rawDistributionList);
-    //   }
-    //   // const returnedList = await namespaceWrapper.getAverageDataFromPubKey(pubKeyReturned, round);
-    //   console.log('FETCHED DISTRIBUTION LIST', fetchedDistributionList);
-    //   const generateDistributionList = await this.generateDistributionList(
-    //     round,
-    //     _dummyTaskState,
-    //     true,
-    //   );
+    try {
+      console.log('Distribution list Submitter', distributionListSubmitter);
+      const rawDistributionList = await namespaceWrapper.getDistributionList(
+        distributionListSubmitter,
+        round,
+      );
 
-    //   // compare distribution list
+      console.log('RAW DISTRIBUTION LIST', rawDistributionList);
+      let fetchedDistributionList;
+      if (rawDistributionList == null) {
+        fetchedDistributionList = _dummyDistributionList;
+      } else {
+        console.log('RAW DISTRIBUTION LIST', rawDistributionList);
+        fetchedDistributionList = JSON.parse(rawDistributionList);
+      }
+      // const returnedList = await namespaceWrapper.getAverageDataFromPubKey(pubKeyReturned, round);
+      console.log('FETCHED DISTRIBUTION LIST', fetchedDistributionList);
+      // const generateDistributionList = await this.generateDistributionList(
+      //   round,
+      //   _dummyTaskState,
+      //   true,
+      // );
 
-    //   const parsed = fetchedDistributionList;
-    //   console.log(
-    //     'compare distribution list',
-    //     parsed,
-    //     generateDistributionList,
-    //   );
-    //   const result = await this.shallowEqual(parsed, generateDistributionList);
-    //   console.log('RESULT', result);
-    //   return result;
-    // } catch (err) {
-    //   console.log('ERROR IN VALIDATING DISTRIBUTION', err);
-    //   return false;
-    // }
-    return true;
+      // compare distribution list
+
+      const parsed = fetchedDistributionList;
+
+      console.log('parsed', parsed);
+      // console.log(
+      //   'compare distribution list',
+      //   parsed,
+      //   generateDistributionList,
+      // );
+      // const result = await this.shallowEqual(parsed, generateDistributionList);
+      // console.log('RESULT', result);
+      //return result;
+    } catch (err) {
+      console.log('ERROR IN VALIDATING DISTRIBUTION', err);
+      return false;
+    }
   };
 
   async shallowEqual(parsed, generateDistributionList) {
