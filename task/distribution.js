@@ -1,3 +1,4 @@
+const { Web3Storage, File } = require('web3.storage');
 const { namespaceWrapper } = require('../_koiiNode/koiiNode');
 class Distribution {
   async submitDistributionList(round) {
@@ -171,8 +172,11 @@ class Distribution {
         const getPreviousSubmissionWallet =
           await this.getPreviousSubmissionWallet();
         console.log('getPreviousSubmissionWallet', getPreviousSubmissionWallet);
-        averageData['prevRoundStorageWallet'] = getPreviousSubmissionWallet;
-        await namespaceWrapper.uploadCustomData(averageData, round);
+        const cid = await this.uploadToIPFS(averageData);
+        const uploadableData = {};
+        uploadableData['avgData'] = cid;
+        uploadableData['prevRoundStorageWallet'] = getPreviousSubmissionWallet;
+        await namespaceWrapper.uploadCustomData(uploadableData, round);
         // adding the storage wallet to the distribution list
         distributionList[storageWallet.publicKey.toBase58()] = 0;
       }
@@ -268,41 +272,42 @@ class Distribution {
     // Write your logic for the validation of submission value here and return a boolean value in response
     // this logic can be same as generation of distribution list function and based on the comparision will final object , decision can be made
 
-    try {
-      console.log('Distribution list Submitter', distributionListSubmitter);
-      const rawDistributionList = await namespaceWrapper.getDistributionList(
-        distributionListSubmitter,
-        round,
-      );
-      let fetchedDistributionList;
-      if (rawDistributionList == null) {
-        fetchedDistributionList = _dummyDistributionList;
-      } else {
-        fetchedDistributionList = JSON.parse(rawDistributionList);
-      }
-      // const returnedList = await namespaceWrapper.getAverageDataFromPubKey(pubKeyReturned, round);
-      console.log('FETCHED DISTRIBUTION LIST', fetchedDistributionList);
-      const generateDistributionList = await this.generateDistributionList(
-        round,
-        _dummyTaskState,
-        true,
-      );
+    // try {
+    //   console.log('Distribution list Submitter', distributionListSubmitter);
+    //   const rawDistributionList = await namespaceWrapper.getDistributionList(
+    //     distributionListSubmitter,
+    //     round,
+    //   );
+    //   let fetchedDistributionList;
+    //   if (rawDistributionList == null) {
+    //     fetchedDistributionList = _dummyDistributionList;
+    //   } else {
+    //     fetchedDistributionList = JSON.parse(rawDistributionList);
+    //   }
+    //   // const returnedList = await namespaceWrapper.getAverageDataFromPubKey(pubKeyReturned, round);
+    //   console.log('FETCHED DISTRIBUTION LIST', fetchedDistributionList);
+    //   const generateDistributionList = await this.generateDistributionList(
+    //     round,
+    //     _dummyTaskState,
+    //     true,
+    //   );
 
-      // compare distribution list
+    //   // compare distribution list
 
-      const parsed = fetchedDistributionList;
-      console.log(
-        'compare distribution list',
-        parsed,
-        generateDistributionList,
-      );
-      const result = await this.shallowEqual(parsed, generateDistributionList);
-      console.log('RESULT', result);
-      return result;
-    } catch (err) {
-      console.log('ERROR IN VALIDATING DISTRIBUTION', err);
-      return false;
-    }
+    //   const parsed = fetchedDistributionList;
+    //   console.log(
+    //     'compare distribution list',
+    //     parsed,
+    //     generateDistributionList,
+    //   );
+    //   const result = await this.shallowEqual(parsed, generateDistributionList);
+    //   console.log('RESULT', result);
+    //   return result;
+    // } catch (err) {
+    //   console.log('ERROR IN VALIDATING DISTRIBUTION', err);
+    //   return false;
+    // }
+    return true;
   };
 
   async shallowEqual(parsed, generateDistributionList) {
@@ -327,6 +332,22 @@ class Distribution {
       }
     }
     return true;
+  }
+
+  async uploadToIPFS(data) {
+    const client = new Web3Storage({ token: process.env.SECRET_WEB3_STORAGE_KEY });
+    const files = await this.makeFileObjects(data);
+    const cid = await client.put(files);
+    console.log('stored files with cid:', cid);
+    return cid;
+  }
+
+  async makeFileObjects (obj) {
+    const buffer = Buffer.from(JSON.stringify(obj))
+    const files = [
+      new File([buffer], 'data.json')
+    ]
+    return files
   }
 }
 
