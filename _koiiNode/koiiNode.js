@@ -574,7 +574,7 @@ class NamespaceWrapper {
         fromPubkey: new PublicKey(MAIN_ACCOUNT_PUBKEY),
         newAccountPubkey: newAccount.publicKey,
         lamports:
-          0.001 * LAMPORTS_PER_SOL +
+          0.15 * LAMPORTS_PER_SOL +
           (await connection.getMinimumBalanceForRentExemption(100)) +
           10000, //Adding 10,000 extra lamports for padding
         space: 100,

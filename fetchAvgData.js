@@ -1,11 +1,19 @@
 const { Connection, PublicKey } = require('@_koi/web3.js');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
+function getUploadingRound(round) {
+  if (round === '0') {
+    return 0;
+  }
+  round = parseInt(round);
+  return Math.abs(round) % 10;
+}
 
 async function test() {
   const connection = new Connection('https://testnet.koii.live');
-  const taskId = 'Cjd1Hg6N1GqCNMA35wmhS9LfsHTbSRrpBJgKLjbJtMQA'; // task ID
+  const taskId = '4R912VGXxGpxM3Gw1AFpTD2rwwM2d3mQ6LvdyDMDpTxE'; // task ID
   let historicalData = {};
   const accountInfo = await connection.getAccountInfo(new PublicKey(taskId));
   if (!accountInfo) {
@@ -31,45 +39,60 @@ async function test() {
   );
   //   parsed = JSON.parse(parsed);
   const storageWalletAccount = findStorageWalletAccount(parsed);
+  const uploadableRound = getUploadingRound(latestSuccessfulRound);
   origData = await fetchDataFromAccount(
     storageWalletAccount,
-    latestSuccessfulRound,
+    uploadableRound,
     connection,
     taskId,
   );
   historicalData[latestSuccessfulRound] = origData;
   console.log(origData);
   let shouldBreak = false;
+  let cidBegin = origData.avgData;
   while (latestSuccessfulRound >= 0) {
     console.log('latestSuccessfulRound', latestSuccessfulRound);
-    console.log('origData', origData.prevRoundStorageWallet);
-    const curr_storage_wallet = origData['prevRoundStorageWallet'];
-    if (!curr_storage_wallet) {
+    let curr_round_data;
+    try {
+       curr_round_data = await axios.get(`https://${cidBegin}.ipfs.w3s.link/data.json`)
+    } catch (error) {
       break;
     }
+    
+    // console.log('curr_round_data', curr_round_data.data);  
+    if(!curr_round_data || !curr_round_data.data || !curr_round_data.data.prevIpfsCid) {
+      break;
+    }
+    console.log('curr_round_data', curr_round_data.data);
+    historicalData[latestSuccessfulRound] = curr_round_data.data;
+    cidBegin = curr_round_data.data.prevIpfsCid;
     latestSuccessfulRound--;
-    while (latestSuccessfulRound >= 0) {
-      console.log('latestSuccessfulRound', latestSuccessfulRound);
-      const curr_storage_wallet_data = await fetchDataFromAccount(
-        curr_storage_wallet,
-        latestSuccessfulRound,
-        connection,
-        taskId,
-      );
-      if (curr_storage_wallet_data == null) {
-        console.log('we reached end of the history');
-        shouldBreak = true;
-        break;
-      }
-      console.log(curr_storage_wallet_data);
-      historicalData[latestSuccessfulRound] = curr_storage_wallet_data;
-      origData = curr_storage_wallet_data;
-      latestSuccessfulRound--;
-    }
-    if (shouldBreak) {
-      break;
-    }
   }
+  // while (latestSuccessfulRound >= 0) {
+  //   console.log('latestSuccessfulRound', latestSuccessfulRound);
+  //   console.log('origData', origData.prevRoundStorageWallet);
+  //   while (latestSuccessfulRound >= 0) {
+  //     console.log('latestSuccessfulRound', latestSuccessfulRound);
+  //     const curr_storage_wallet_data = await fetchDataFromAccount(
+  //       curr_storage_wallet,
+  //       latestSuccessfulRound,
+  //       connection,
+  //       taskId,
+  //     );
+  //     if (curr_storage_wallet_data == null) {
+  //       console.log('we reached end of the history');
+  //       shouldBreak = true;
+  //       break;
+  //     }
+  //     console.log(curr_storage_wallet_data);
+  //     historicalData[latestSuccessfulRound] = curr_storage_wallet_data;
+  //     origData = curr_storage_wallet_data;
+  //     latestSuccessfulRound--;
+  //   }
+  //   if (shouldBreak) {
+  //     break;
+  //   }
+  // }
   try {
     const filePath = path.join(__dirname, 'HistoricalData.json');
     console.log(`Writing to: ${filePath}`);
@@ -151,7 +174,7 @@ test()
     if (!historicalData || Object.keys(historicalData).length === 0) {
       console.error('No historical data was returned from the test function.');
     } else {
-      console.log('done', historicalData);
+      // console.log('done', historicalData);
     }
   })
   .catch(error => {
