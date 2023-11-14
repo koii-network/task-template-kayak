@@ -1,10 +1,12 @@
 const { Web3Storage, File } = require('web3.storage');
 const dataFromCid = require('../helpers/dataFromCid');
 const deepEqual = require('../helpers/objectComparison');
-const { namespaceWrapper } = require('../_koiiNode/koiiNode');
+const { Connection, PublicKey } = require('@_koi/web3.js');
+const { namespaceWrapper, TASK_ID } = require('../_koiiNode/koiiNode');
+const axios = require('axios');
 class Distribution {
   async submitDistributionList(round) {
-    // This function just upload your generated dustribution List and do the transaction for that
+    // This function just upload your generated distribution List and do the transaction for that
 
     console.log('SubmitDistributionList called');
 
@@ -86,6 +88,8 @@ class Distribution {
     console.log('getPreviousSubmissionWallet called');
     const storageWallet = await namespaceWrapper.getStorageWallet();
     console.log('storageWallet', storageWallet.publicKey.toBase58());
+    const unInitializedRounds = [];
+    const failedRounds = [];
     try {
       const taskState = await namespaceWrapper.getTaskState();
       console.log('taskState', taskState);
@@ -97,7 +101,12 @@ class Distribution {
         let latestRound = Math.max(...rounds.map(Number));
         console.log('latestRound', latestRound);
         if (latestRound === -Infinity) {
-          return '';
+          return {
+            curr_storage_wallet: '',
+            curr_distribution_round: '',
+            uninitializedRounds: unInitializedRounds,
+            failedRounds: failedRounds,
+          };
         }
         if (
           taskState.distributions_audit_record[latestRound] ===
@@ -109,6 +118,16 @@ class Distribution {
           lastDistributionRound = latestRound;
           break;
         } else {
+          if (
+            taskState.distributions_audit_record[latestRound] === 'PayoutFailed'
+          ) {
+            failedRounds.push(latestRound);
+          } else if (
+            taskState.distributions_audit_record[latestRound] ===
+            'Uninitialized'
+          ) {
+            unInitializedRounds.push(latestRound);
+          }
           const index = rounds.indexOf(String(latestRound));
           console.log('index', index);
           if (index > -1) {
@@ -132,7 +151,12 @@ class Distribution {
         }
       }
       if (finalDistributionAccount === '') {
-        return '';
+        return {
+          curr_storage_wallet: '',
+          curr_distribution_round: '',
+          uninitializedRounds: unInitializedRounds,
+          failedRounds: failedRounds,
+        };
       }
       const distributionList = await namespaceWrapper.getDistributionList(
         finalDistributionAccount,
@@ -146,13 +170,28 @@ class Distribution {
         const key = keys[index];
         if (parsed[key] == 0) {
           console.log('key in parsed distribution list that equals 0', key);
-          return key;
+          return {
+            curr_storage_wallet: key,
+            curr_distribution_round: lastDistributionRound,
+            uninitializedRounds: unInitializedRounds,
+            failedRounds: failedRounds,
+          };
         }
       }
-      return '';
+      return {
+        curr_storage_wallet: '',
+        curr_distribution_round: '',
+        uninitializedRounds: unInitializedRounds,
+        failedRounds: failedRounds,
+      };
     } catch (error) {
       console.log('ERROR IN GETTING PREVIOUS SUBMISSION WALLET', error);
-      return '';
+      return {
+        curr_storage_wallet: '',
+        curr_distribution_round: '',
+        uninitializedRounds: unInitializedRounds,
+        failedRounds: failedRounds,
+      };
     }
   }
 
@@ -167,18 +206,76 @@ class Distribution {
 
       let distributionList = {};
       let distributionCandidates = [];
-
+      let unfinishedRoundsData = {};
       if (!isAuditing) {
         const storageWallet = await namespaceWrapper.getStorageWallet();
         const averageData = await this.computeAverages(round);
-        const getPreviousSubmissionWallet =
+        const getPreviousSubmissionData =
           await this.getPreviousSubmissionWallet();
-        console.log('getPreviousSubmissionWallet', getPreviousSubmissionWallet);
-        const cid = await this.uploadToIPFS(averageData);
+        let prevData;
+        if (getPreviousSubmissionData.curr_storage_wallet === '') {
+          prevData = '';
+        } else {
+          const uploadableRound = this.getUploadingRound(
+            getPreviousSubmissionData.curr_distribution_round,
+          );
+          console.log('getPreviousSubmissionData', getPreviousSubmissionData);
+          prevData = await namespaceWrapper.getDistributionList(
+            getPreviousSubmissionData.curr_storage_wallet,
+            uploadableRound,
+          );
+          prevData = JSON.parse(prevData);
+          prevData = JSON.parse(prevData);
+          console.log('prevData', prevData);
+          prevData = prevData['avgData'];
+          unfinishedRoundsData = await this.getUnfinishedRoundsData(prevData);
+        }
+
+        console.log('getPreviousSubmissionWallet', getPreviousSubmissionData);
+        const ipfsUploadableData = {};
+        ipfsUploadableData['prevIpfsCid'] = prevData;
+        ipfsUploadableData['curr_data'] = {};
+        ipfsUploadableData['curr_data'][round] = averageData;
+        console.log(
+          'unfinishedRoundsData Keys',
+          Object.keys(unfinishedRoundsData).length,
+        );
+        console.log('unfinishedRoundsData', unfinishedRoundsData);
+        if (Object.keys(unfinishedRoundsData).length !== 0) {
+          const unfinishedRoundKeys = Object.keys(unfinishedRoundsData);
+          for (
+            let unfinishedRoundIndex = 0;
+            unfinishedRoundIndex < unfinishedRoundKeys.length;
+            unfinishedRoundIndex++
+          ) {
+            console.log('unfinishedRoundIndex', unfinishedRoundIndex);
+            const unfinishedRound = unfinishedRoundKeys[unfinishedRoundIndex];
+            console.log(
+              'ipfsUploadableData[curr_data][unfinishedRound]',
+              ipfsUploadableData['curr_data'][unfinishedRound],
+            );
+            console.log(
+              'unfinishedRoundsData[unfinishedRound]',
+              unfinishedRoundsData[unfinishedRound],
+            );
+            if (!ipfsUploadableData['curr_data'][unfinishedRound]) {
+              ipfsUploadableData['curr_data'][unfinishedRound] =
+                unfinishedRoundsData[unfinishedRound];
+            }
+          }
+        }
+        ipfsUploadableData['uninitializedRounds'] =
+          getPreviousSubmissionData.uninitializedRounds;
+        const cid = await this.uploadToIPFS(ipfsUploadableData);
         const uploadableData = {};
         uploadableData['avgData'] = cid;
-        uploadableData['prevRoundStorageWallet'] = getPreviousSubmissionWallet;
-        await namespaceWrapper.uploadCustomData(uploadableData, round);
+        // uploadableData['prevRoundStorageWallet'] = getPreviousSubmissionData.curr_storage_wallet;
+        let uploadableRound = this.getUploadingRound(round);
+        console.log('uploadableRound', uploadableRound);
+        await namespaceWrapper.uploadCustomData(
+          uploadableData,
+          uploadableRound,
+        );
         // adding the storage wallet to the distribution list
         distributionList[storageWallet.publicKey.toBase58()] = 0;
       }
@@ -265,6 +362,7 @@ class Distribution {
       return distributionList;
     } catch (err) {
       console.log('ERROR IN GENERATING DISTRIBUTION LIST', err);
+      return {};
     }
   }
 
@@ -420,6 +518,127 @@ class Distribution {
     const buffer = Buffer.from(JSON.stringify(obj));
     const files = [new File([buffer], 'data.json')];
     return files;
+  }
+
+  getUploadingRound(round) {
+    if (round === '0') {
+      return 0;
+    }
+    round = parseInt(round);
+    return Math.abs(round) % 10;
+  }
+
+  async getUnfinishedRoundsData(prevData) {
+    try {
+      const prev_round_data = await axios.get(
+        `https://${prevData}.ipfs.w3s.link/data.json`,
+      );
+      console.log('prev round data', prev_round_data.data);
+      if (
+        !prev_round_data ||
+        !prev_round_data.data ||
+        !prev_round_data.data.uninitializedRounds ||
+        prev_round_data.data.uninitializedRounds.length === 0
+      ) {
+        console.log('No unfinished rounds data found');
+        return {};
+      }
+      const unfinishedRounds = prev_round_data.data.uninitializedRounds;
+      console.log('unfinishedRounds', unfinishedRounds);
+      const finishedRoundData = {};
+      const taskState = await namespaceWrapper.getTaskState();
+
+      for (let index = 0; index < unfinishedRounds.length; index++) {
+        let element = unfinishedRounds[index];
+        console.log('unfinished business for element ', element);
+        if (
+          taskState.distributions_audit_record[element] === 'PayoutSuccessful'
+        ) {
+          console.log('Its inside the payout successful case');
+          const distributionSubmissions =
+            taskState.distribution_rewards_submission[element];
+          const latestDistributionSubmission =
+            this.findLatestDistributionSubmission(distributionSubmissions);
+          console.log(
+            'latestDistributionSubmission',
+            latestDistributionSubmission,
+          );
+          if (!latestDistributionSubmission) {
+            continue;
+          }
+          const parsed = await this.fetchDataFromAccount(
+            latestDistributionSubmission,
+            element,
+          );
+          console.log('parsed', parsed);
+          const storageWalletAccount = this.findStorageWalletAccount(parsed);
+          console.log('storageWalletAccount', storageWalletAccount);
+          const uploadableRound = this.getUploadingRound(element);
+          console.log('uploadableRound', uploadableRound);
+          const origData = await this.fetchDataFromAccount(
+            storageWalletAccount,
+            uploadableRound,
+          );
+          console.log('origData', origData);
+          finishedRoundData[element] = origData;
+        }
+      }
+      console.log('finishedRoundData', finishedRoundData);
+      return finishedRoundData;
+    } catch (error) {
+      console.log('ERROR IN GETTING UNFINISHED ROUNDS DATA', error);
+      return {};
+    }
+  }
+
+  async fetchDataFromAccount(account, round) {
+    const rpcUrl = await namespaceWrapper.getRpcUrl();
+    const connection = new Connection(rpcUrl, 'confirmed');
+    const storageWalletAccountInfo = await connection.getAccountInfo(
+      new PublicKey(account),
+    );
+    const storageWalletAccountData = JSON.parse(
+      storageWalletAccountInfo.data + '',
+    );
+    if (storageWalletAccountData[round]) {
+      const bufferAccountData = Buffer.from(
+        storageWalletAccountData[round][TASK_ID],
+      );
+
+      let origData = this.extractOrigDataFromBuffer(bufferAccountData);
+      origData = JSON.parse(origData);
+      origData = JSON.parse(origData);
+      return origData;
+    } else return null;
+  }
+
+  extractOrigDataFromBuffer(bufferData) {
+    const index = bufferData.indexOf(0x00);
+    const slicedBuffer = bufferData.slice(0, index);
+    return JSON.stringify(new TextDecoder().decode(slicedBuffer));
+  }
+
+  findLatestDistributionSubmission(distributionSubmissions) {
+    let latestSlot = -Infinity;
+    let latestSubmissionKey = null;
+
+    for (const key in distributionSubmissions) {
+      const slot = distributionSubmissions[key].slot;
+      if (slot > latestSlot) {
+        latestSlot = slot;
+        latestSubmissionKey = key;
+      }
+    }
+    return latestSubmissionKey;
+  }
+
+  findStorageWalletAccount(parsed) {
+    for (const key in parsed) {
+      if (parsed[key] === 0) {
+        return key;
+      }
+    }
+    return null;
   }
 }
 
