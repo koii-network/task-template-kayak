@@ -15,7 +15,7 @@ class Audit {
       // GET THE SUBMISSION VALUE FROM DB
 
       const db = await namespaceWrapper.getDb();
-      const searchPattern = `scrape:${round}:`;
+      const searchPattern = `scrapeCidAverageData:${round}:`;
 
       // Construct the regular expression dynamically
       const regexPattern = new RegExp(`^${searchPattern}`);

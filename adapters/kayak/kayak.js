@@ -144,6 +144,14 @@ class Kayak {
     this.browser = null;
   };
 
+  storeAverageData = async (round, cid) => {
+    await this.cids.create({
+      id: 'scrapeCidAverageData:' + round,
+      round: round,
+      cid: cid,
+    });
+  };
+
   /**
    * getSubmissionCID
    * @param {string} round - the round to get the submission cid for
@@ -154,8 +162,21 @@ class Kayak {
   getSubmissionCID = async round => {
     if (this.proofs) {
       // we need to upload proofs for that round and then store the cid
-      const data = await this.cids.getList({ round: round });
-      console.log(`got cids list for round ${round}`, data);
+      // const data = await distribution.computeAverages(round);
+
+      // console.log('DATA FROM GET SUBMISSIONCID', data);
+
+      // GET THE DATA FROM THE DATABASE
+
+      //console.log('CHECK', `scrapeCidAverageData: + ${round}`);
+
+      // const data = await namespaceWrapper.storeGet(
+      //   'scrapeCidAverageData:' + `${round}`,
+      // );
+
+      const data = await this.cids.getAverageList({ round: round });
+
+      console.log('DATA FROM GET SUBMISSIONCID', data);
 
       if (data && data.length === 0) {
         console.log('No cids found for round ' + round);
@@ -220,7 +241,7 @@ class Kayak {
       .catch(error => console.log(error));
   };
 
-  storeScrapeOnIPFS = async (data) => {
+  storeScrapeOnIPFS = async data => {
     console.log('storing scrape on IPFS');
     const round = await namespaceWrapper.getRound();
     const files = await makeFileFromObjectWithName(data);
