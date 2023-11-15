@@ -15,19 +15,20 @@ class Audit {
       // GET THE SUBMISSION VALUE FROM DB
 
       const db = await namespaceWrapper.getDb();
-      const searchPattern = `scrapeCidAverageData:${round}:`;
 
-      // Construct the regular expression dynamically
-      const regexPattern = new RegExp(`^${searchPattern}`);
-      const itemListRaw = await db.find({ id: regexPattern });
-      console.log('itemListRaw', itemListRaw);
-
-      // check if the data is same as the original data
+      // GET THE DATA FROM DB
+      const searchPattern = `scrapeCidAverageData:${round}`;
+      const itemListRaw = await db.find({ id: searchPattern });
+      console.log('**********AVERAGE DATA*********', itemListRaw);
 
       const originalItem = originalData.data[0];
-      const matchingItem = itemListRaw[0];
 
       const itemData = await dataFromCid(originalItem.cid);
+      console.log('itemData', itemData.data);
+
+      const matchingItem = await dataFromCid(itemListRaw[0].cid);
+
+      console.log('matchingItem', matchingItem.data);
       const isEqual = await deepEqual(itemData.data, matchingItem.data);
 
       console.log('isEqual', isEqual);
