@@ -92,7 +92,7 @@ async function setup() {
 
   // Audit submissions
 
-  await coreLogic.auditTask(2865);
+  //await coreLogic.auditTask(2865);
 
   // upload distribution list to K2
 
@@ -100,7 +100,7 @@ async function setup() {
 
   // Audit distribution list
 
-  //await coreLogic.auditDistribution(11);
+  await coreLogic.auditDistribution(3528);
 
   // Payout trigger
 

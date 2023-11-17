@@ -1,7 +1,7 @@
 const e = require('express');
 const { namespaceWrapper } = require('../_koiiNode/koiiNode');
 const dataFromCid = require('../helpers/dataFromCid');
-const deepEqual = require('../helpers/objectComparison');
+const deepEqual = require('../helpers/submissionComparison');
 
 class Audit {
   async validateNode(submission_value, round) {

@@ -1,6 +1,7 @@
 const { Web3Storage, File } = require('web3.storage');
 const dataFromCid = require('../helpers/dataFromCid');
-const deepEqual = require('../helpers/objectComparison');
+const deepEqualDistributionList = require('../helpers/distrbutionComparision');
+const deepEqual = require('../helpers/submissionComparison');
 const { Connection, PublicKey } = require('@_koi/web3.js');
 const { namespaceWrapper, TASK_ID } = require('../_koiiNode/koiiNode');
 const axios = require('axios');
@@ -391,13 +392,6 @@ class Distribution {
       }
       //const returnedList = await namespaceWrapper.getAverageDataFromPubKey(pubKeyReturned, round);
       console.log('FETCHED DISTRIBUTION LIST', fetchedDistributionList);
-      // const generateDistributionList = await this.generateDistributionList(
-      //   round,
-      //   _dummyTaskState,
-      //   true,
-      // );
-
-      // compare distribution list
 
       const parsedList = JSON.parse(fetchedDistributionList);
 
@@ -415,9 +409,14 @@ class Distribution {
 
       // Now fetch the original list using getDistributionList
 
+      console.log('ROUND', round);
+
+      const uploadRound = this.getUploadingRound(round);
+      console.log('UPLOAD ROUND', uploadRound);
+
       const checkDistributionList = await namespaceWrapper.getDistributionList(
         pubKeyReturned,
-        round,
+        uploadRound,
       );
 
       const fetchedCheckDistributionList = JSON.parse(checkDistributionList);
@@ -436,36 +435,98 @@ class Distribution {
 
       console.log(
         '********averageDataFetched**********',
-        averageDataFetched.data,
+        averageDataFetched.data.curr_data[round],
       );
+
+      // FROM TASk STATE GET THE STAKING KEY OF THIS NODE AND CHECK IF IT HAS SAME SUBMISSION IN THE ROUND
+
+      const taskState = await namespaceWrapper.getTaskState();
+      console.log('TASK STATE', taskState);
+
+      const stakingKeyObject = taskState.distribution_rewards_submission[round];
+      const stakingKey = Object.keys(stakingKeyObject)[0];
+      console.log('STAKING KEY', stakingKey);
+
+      // Find this staking key in the submissions of the round and fetch it's values
+
+      const submissionObject = taskState.submissions[round];
+
+      console.log('submissionObject', submissionObject);
+
+      const submissionCid = submissionObject[stakingKey].submission_value;
+
+      console.log('submissionCid', submissionCid);
+
+      const submission = await dataFromCid(submissionCid);
+
+      console.log('submission', submission);
 
       // comparing values
 
-      const averageData = await this.computeAverages(round);
-      console.log('******************averageData**************', averageData);
+      //const averageData = await this.computeAverages(round);
 
-      const isEqual = await deepEqual(averageDataFetched.data, averageData);
+      //console.log('******************averageData**************', averageData);
 
-      console.log('isEqual', isEqual);
+      // const isEqual = await deepEqual(averageDataFetched.data, averageData, 20);
 
-      const getPreviousSubmissionWallet =
-        await this.getPreviousSubmissionWallet();
-      console.log(
-        '******************getPreviousSubmissionWallet****************',
-        getPreviousSubmissionWallet,
+      // console.log('isEqual', isEqual);
+
+      // if (
+      //   isEqual &&
+      //   parsedCheckDistributionList.prevRoundStorageWallet === undefined
+      // ) {
+      //   console.log('######################EQUAL###########');
+      //   return true;
+      // }
+
+      // const getPreviousSubmissionWallet =
+      //   await this.getPreviousSubmissionWallet();
+
+      // console.log(
+      //   '******************getPreviousSubmissionWallet****************',
+      //   getPreviousSubmissionWallet.curr_storage_wallet,
+      // );
+
+      // const isEqualPrevWallet =
+      //   getPreviousSubmissionWallet.curr_storage_wallet ===
+      //   parsedCheckDistributionList.prevRoundStorageWallet;
+
+      // console.log('isEqualPrevWallet', isEqualPrevWallet);
+
+      // FINALLY COMPARING THE DISTRIBUTION LIST AFTER REMOVING THE KEY WITH VALUE 0
+
+      const generateDistributionList = await this.generateDistributionList(
+        round,
+        undefined,
+        true,
+      );
+      console.log('GENERATED DISTRIBUTION LIST', generateDistributionList);
+
+      const modifiedList = Object.fromEntries(
+        Object.entries(parsedList).filter(([key, value]) => value !== 0),
       );
 
-      const isEqualPrevWallet =
-        getPreviousSubmissionWallet ===
-        parsedCheckDistributionList.prevRoundStorageWallet;
+      console.log('WITHOUT ZERO', modifiedList);
 
-      console.log('isEqualPrevWallet', isEqualPrevWallet);
+      const distributionComparison = await deepEqualDistributionList(
+        modifiedList,
+        generateDistributionList,
+      );
 
-      if (isEqual && isEqualPrevWallet) {
+      console.log(
+        '***********distributionComparison********',
+        distributionComparison,
+      );
+
+      // EDGE CASE : IF THE PREVIOUS WALLET IS UNFEDINED THEN IT WILL BE NULL AND THE COMPARISON WILL FAIL
+      // it should return true if the previous wallet is undefined and isEqual is true
+
+      if (isEqual && distributionComparison) {
         console.log('######################EQUAL###########');
         return true;
       }
 
+      return false;
       // console.log(
       //   'compare distribution list',
       //   parsed,

@@ -1206,9 +1206,10 @@ class NamespaceWrapper {
           let candidatePublicKey = keys[i];
           console.log('FOR CANDIDATE KEY', candidatePublicKey);
           let candidateKeyPairPublicKey = new PublicKey(keys[i]);
-          if (candidatePublicKey == submitterPubkey) {
-            console.log('YOU CANNOT VOTE ON YOUR OWN DISTRIBUTION SUBMISSIONS');
-          } else {
+          // if (candidatePublicKey == submitterPubkey) {
+          //   console.log('YOU CANNOT VOTE ON YOUR OWN DISTRIBUTION SUBMISSIONS');
+          // } else 
+          {
             try {
               console.log(
                 'DISTRIBUTION SUBMISSION VALUE TO CHECK',
