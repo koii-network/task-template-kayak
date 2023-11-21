@@ -13,7 +13,7 @@ function getUploadingRound(round) {
 
 async function test() {
   const connection = new Connection('https://testnet.koii.live');
-  const taskId = '4R912VGXxGpxM3Gw1AFpTD2rwwM2d3mQ6LvdyDMDpTxE'; // task ID
+  const taskId = '8RbhDGLzZnujXigx3Zx3LL8LvbKJ9Ho71jzoaifXtd6N'; // task ID
   let historicalData = {};
   const accountInfo = await connection.getAccountInfo(new PublicKey(taskId));
   if (!accountInfo) {
@@ -94,7 +94,7 @@ async function test() {
   //   }
   // }
   try {
-    const filePath = path.join(__dirname, 'HistoricalData.json');
+    const filePath = path.join(__dirname, 'FindingHistoricData.json');
     console.log(`Writing to: ${filePath}`);
     const historicalDataString = JSON.stringify(historicalData, null, 2);
 
