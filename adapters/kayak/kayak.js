@@ -7,7 +7,7 @@ const axios = require('axios');
 const { SpheronClient, ProtocolEnum } = require('@spheron/storage');
 const Data = require('../../model/data');
 const { namespaceWrapper } = require('../../_koiiNode/koiiNode');
-const { writeFile } = require('fs');
+const { writeFileSync } = require('fs');
 
 /**
  * Twitter
@@ -168,6 +168,8 @@ class Kayak {
         // });
 
         const listFilePath = await makeFileFromObjectWithName(data);
+        if(!listFilePath)
+          return null;
         // TEST USE
         const client = makeStorageClient();
         //const cid = await client.put([listFile]);
@@ -285,14 +287,19 @@ function makeStorageClient() {
 }
 
 async function makeFileFromObjectWithName(obj) {
-  const dataString = JSON.stringify(obj);
+  try {
+    const dataString = JSON.stringify(obj);
 
-  await namespaceWrapper.fs('writeFile', 'data.json', dataString);
-  const path = await namespaceWrapper.getBasePath();
-  console.log('path', path);
-  const filePath = path + '/data.json';
+    // await namespaceWrapper.fs('writeFile', 'data.json', dataString);
 
-  return filePath;
+    const path = await namespaceWrapper.getBasePath();
+    console.log('path', path);
+    const filePath = path + '/data.json';
+    writeFileSync(filePath, dataString);
+    return filePath;
+  } catch (error) {
+    console.log('error', error);
+  }
 
   // const dataJson = new File([databuffer], 'data.json', {
   //   type: 'application/json',

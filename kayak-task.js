@@ -197,10 +197,10 @@ class KayakTask {
     }
 
     this.cronJob = cron.schedule(
-      '*/10 * * * *',
+      '*/2 * * * *',
       async () => {
         const currentMinute = parseInt(moment.utc().format('m'), 10);
-        if (currentMinute % 10 === 0) {
+        if (currentMinute % 2 === 0) {
           // Your desired cron task to be executed here
           console.log('Cron job started!');
           await this.crawlLocations(locationURLs, currentMinute);
@@ -214,10 +214,10 @@ class KayakTask {
 
   startCronOnEvenMinute(locationURLs) {
     const currentMinute = parseInt(moment().format('m'), 10);
-    const cronMinute = Math.ceil(currentMinute / 10) * 10; // Round up the current minute to the nearest multiple of 10
+    const cronMinute = Math.ceil(currentMinute / 2) * 2; // Round up the current minute to the nearest multiple of 10
     const nextCronTime = moment()
       .minute(cronMinute)
-      .add(cronMinute <= currentMinute ? 10 : 0, 'minutes'); // If current minute is already a multiple of 10, add 10 minutes
+      .add(cronMinute <= currentMinute ? 2 : 0, 'minutes'); // If current minute is already a multiple of 10, add 10 minutes
 
     const waitTime = nextCronTime.diff(moment(), 'milliseconds');
     console.log(
