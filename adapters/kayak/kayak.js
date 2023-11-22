@@ -175,7 +175,10 @@ class Kayak {
 
         // CID FROM GET SUBMISSION CID
 
-        console.log('***************STORING FILES***************', listFilePath);
+        console.log(
+          '***************STORING FILES***************',
+          listFilePath,
+        );
 
         let currentlyUploaded = 0;
 
@@ -248,7 +251,7 @@ class Kayak {
     console.log('storing scrape on IPFS');
     const round = await namespaceWrapper.getRound();
     const filePath = await makeFileFromObjectWithName(data);
-    console.log('filePath', filePath);
+    console.log('**********filePath*********', filePath);
     const cid = await storeFiles(filePath);
     console.log('cid', cid);
     await this.cids.create({
@@ -308,7 +311,7 @@ async function storeFiles(filePath) {
   //const cid = await client.put([files.dataJson]);
   // console.log('stored files with cid:', cid);
 
-  console.log('***************STORING FILES***************', files.dataJson);
+  console.log('***************STORING FILES***************', filePath);
 
   let currentlyUploaded = 0;
 
