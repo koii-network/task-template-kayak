@@ -84,7 +84,7 @@ async function setup() {
   // await namespaceWrapper.uploadCustomData(dumbJson, round);
   // Call to do the work for the task
 
-  // await coreLogic.task(round);
+  //await coreLogic.task();
 
   // Submission to K2 (Preferablly you should submit the cid received from IPFS)
 

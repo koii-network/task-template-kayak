@@ -4,9 +4,10 @@ const PCR = require('puppeteer-chromium-resolver');
 const cheerio = require('cheerio');
 var crypto = require('crypto');
 const axios = require('axios');
-const { Web3Storage, File } = require('web3.storage');
+const { SpheronClient, ProtocolEnum } = require('@spheron/storage');
 const Data = require('../../model/data');
 const { namespaceWrapper } = require('../../_koiiNode/koiiNode');
+const { writeFile } = require('fs');
 
 /**
  * Twitter
@@ -161,14 +162,37 @@ class Kayak {
         console.log('No cids found for round ' + round);
         return null;
       } else {
-        const listBuffer = Buffer.from(JSON.stringify(data));
-        const listFile = new File([listBuffer], 'data.json', {
-          type: 'application/json',
-        });
+        // const listBuffer = JSON.stringify(data);
+        // const listFile = new File([listBuffer], 'data.json', {
+        //   type: 'application/json',
+        // });
+
+        const listFilePath = await makeFileFromObjectWithName(data);
         // TEST USE
         const client = makeStorageClient();
-        const cid = await client.put([listFile]);
+        //const cid = await client.put([listFile]);
         // const cid = "cid"
+
+        // CID FROM GET SUBMISSION CID
+
+        console.log('***************STORING FILES***************', listFilePath);
+
+        let currentlyUploaded = 0;
+
+        const { cid } = await client.upload(listFilePath, {
+          protocol: ProtocolEnum.IPFS,
+          name: 'test',
+          onUploadInitiated: uploadId => {
+            console.log(`Upload with id ${uploadId} started...`);
+          },
+          onChunkUploaded: (uploadedSize, totalSize) => {
+            currentlyUploaded += uploadedSize;
+            console.log(`Uploaded ${currentlyUploaded} of ${totalSize} Bytes.`);
+          },
+        });
+
+        console.log(`CID: ${cid}`);
+
         await this.proofs.create({
           id: 'proof:' + round,
           proof_round: round,
@@ -220,12 +244,12 @@ class Kayak {
       .catch(error => console.log(error));
   };
 
-  storeScrapeOnIPFS = async (data) => {
+  storeScrapeOnIPFS = async data => {
     console.log('storing scrape on IPFS');
     const round = await namespaceWrapper.getRound();
-    const files = await makeFileFromObjectWithName(data);
-    console.log('files', files);
-    const cid = await storeFiles(files);
+    const filePath = await makeFileFromObjectWithName(data);
+    console.log('filePath', filePath);
+    const cid = await storeFiles(filePath);
     console.log('cid', cid);
     await this.cids.create({
       id: 'scrapeCid:' + round + ':' + data.timestamp,
@@ -249,27 +273,58 @@ module.exports = Kayak;
 
 // TODO - move the following functions to a utils file?
 function makeStorageClient() {
-  return new Web3Storage({ token: getAccessToken() });
+  //return new Web3Storage({ token: getAccessToken() });
+
+  return new SpheronClient({
+    token: getAccessToken(),
+    apiUrl: 'https://temp-api-dev.spheron.network',
+  });
 }
 
 async function makeFileFromObjectWithName(obj) {
-  const databuffer = Buffer.from(JSON.stringify(obj));
-  const dataJson = new File([databuffer], 'data.json', {
-    type: 'application/json',
-  });
+  const dataString = JSON.stringify(obj);
+
+  await namespaceWrapper.fs('writeFile', 'data.json', dataString);
+  const path = await namespaceWrapper.getBasePath();
+  console.log('path', path);
+  const filePath = path + '/data.json';
+
+  return filePath;
+
+  // const dataJson = new File([databuffer], 'data.json', {
+  //   type: 'application/json',
+  // });
 
   //   const htmlBuffer = Buffer.from(item);
   //   const dataHtml = new File([htmlBuffer], 'data.txt', {
   //     type: 'text/html;charset=UTF-8',
   //   });
 
-  return { dataJson };
+  // return { dataJson };
 }
 
-async function storeFiles(files) {
+async function storeFiles(filePath) {
   const client = makeStorageClient();
-  const cid = await client.put([files.dataJson]);
+  //const cid = await client.put([files.dataJson]);
   // console.log('stored files with cid:', cid);
+
+  console.log('***************STORING FILES***************', files.dataJson);
+
+  let currentlyUploaded = 0;
+
+  const { cid } = await client.upload(filePath, {
+    protocol: ProtocolEnum.IPFS,
+    name: 'test',
+    onUploadInitiated: uploadId => {
+      console.log(`Upload with id ${uploadId} started...`);
+    },
+    onChunkUploaded: (uploadedSize, totalSize) => {
+      currentlyUploaded += uploadedSize;
+      console.log(`Uploaded ${currentlyUploaded} of ${totalSize} Bytes.`);
+    },
+  });
+
+  console.log(`CID: ${cid}`);
   return cid;
 }
 
@@ -283,4 +338,6 @@ function getAccessToken() {
   // your code base. For this to work, you need to set the
   // WEB3STORAGE_TOKEN environment variable before you run your code.
   return process.env.SECRET_WEB3_STORAGE_KEY;
+
+  // SECRET_SPHERON_STORAGE_KEY is the key for the spheron storage.
 }
