@@ -282,7 +282,6 @@ function makeStorageClient() {
 
   return new SpheronClient({
     token: getAccessToken(),
-    apiUrl: 'https://temp-api-dev.spheron.network',
   });
 }
 
@@ -347,7 +346,7 @@ function getAccessToken() {
   // environement variable or other configuration that's kept outside of
   // your code base. For this to work, you need to set the
   // WEB3STORAGE_TOKEN environment variable before you run your code.
-  return process.env.SECRET_SPHERON_STORAGE_KEY;
+  return process.env.Spheron_Storage;
 
   // SECRET_SPHERON_STORAGE_KEY is the key for the spheron storage.
 }

@@ -436,8 +436,7 @@ class Distribution {
 
   async uploadToIPFS(data) {
     const client = new SpheronClient({
-      token: process.env.SECRET_SPHERON_STORAGE_KEY,
-      apiUrl: 'https://temp-api-dev.spheron.network',
+      token: process.env.Spheron_Storage,
     });
     const listFilePath = await this.makeFileObjects(data);
     // const cid = await client.put(files);
@@ -497,7 +496,7 @@ class Distribution {
     try {
       const prev_round_data = await axios.get(
         // `https://${prevData}.ipfs.w3s.link/data.json`,
-        `https://${prevData}.ipfs.dev.sphn.link/data.json`,
+        `https://${prevData}.ipfs.dweb.link/data.json`,
       );
       console.log('prev round data', prev_round_data.data);
       if (
