@@ -239,7 +239,7 @@ module.exports = KayakTask;
  */
 const getJSONFromCID = async cid => {
   return new Promise((resolve, reject) => {
-    let url = `https://${cid}.ipfs.dweb.link/data.json`;
+    let url = `https://${cid}.ipfs.dev.sphn.link/data.json`;
     // console.log('making call to ', url)
     axios.get(url).then(response => {
       if (response.status !== 200) {

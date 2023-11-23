@@ -1,7 +1,9 @@
 const { Web3Storage, File } = require('web3.storage');
 const { Connection, PublicKey } = require('@_koi/web3.js');
 const { namespaceWrapper, TASK_ID } = require('../_koiiNode/koiiNode');
+const { SpheronClient, ProtocolEnum } = require('@spheron/storage');
 const axios = require('axios');
+const { writeFileSync } = require('fs');
 class Distribution {
   async submitDistributionList(round) {
     // This function just upload your generated distribution List and do the transaction for that
@@ -433,19 +435,54 @@ class Distribution {
   }
 
   async uploadToIPFS(data) {
-    const client = new Web3Storage({
-      token: process.env.SECRET_WEB3_STORAGE_KEY,
+    const client = new SpheronClient({
+      token: process.env.SECRET_SPHERON_STORAGE_KEY,
+      apiUrl: 'https://temp-api-dev.spheron.network',
     });
-    const files = await this.makeFileObjects(data);
-    const cid = await client.put(files);
-    console.log('stored files with cid:', cid);
+    const listFilePath = await this.makeFileObjects(data);
+    // const cid = await client.put(files);
+    // console.log('stored files with cid:', cid);
+    // return cid;
+    console.log(
+      '***************STORING FILES***************',
+      listFilePath,
+    );
+
+    let currentlyUploaded = 0;
+
+    const { cid } = await client.upload(listFilePath, {
+      protocol: ProtocolEnum.IPFS,
+      name: 'test',
+      onUploadInitiated: uploadId => {
+        console.log(`Upload with id ${uploadId} started...`);
+      },
+      onChunkUploaded: (uploadedSize, totalSize) => {
+        currentlyUploaded += uploadedSize;
+        console.log(`Uploaded ${currentlyUploaded} of ${totalSize} Bytes.`);
+      },
+    });
+
+    console.log(`CID: ${cid}`);
     return cid;
   }
 
   async makeFileObjects(obj) {
-    const buffer = Buffer.from(JSON.stringify(obj));
-    const files = [new File([buffer], 'data.json')];
-    return files;
+    // const buffer = Buffer.from(JSON.stringify(obj));
+    // const files = [new File([buffer], 'data.json')];
+    // return files;
+    try {
+      const dataString = JSON.stringify(obj);
+  
+      // await namespaceWrapper.fs('writeFile', 'data.json', dataString);
+  
+      const path = await namespaceWrapper.getBasePath();
+      console.log('path', path);
+      const filePath = path + '/data.json';
+      writeFileSync(filePath, dataString);
+      return filePath;
+    } catch (error) {
+      console.log('error', error);
+    }
   }
 
   getUploadingRound(round) {
@@ -459,7 +496,8 @@ class Distribution {
   async getUnfinishedRoundsData(prevData) {
     try {
       const prev_round_data = await axios.get(
-        `https://${prevData}.ipfs.w3s.link/data.json`,
+        // `https://${prevData}.ipfs.w3s.link/data.json`,
+        `https://${prevData}.ipfs.dev.sphn.link/data.json`,
       );
       console.log('prev round data', prev_round_data.data);
       if (
