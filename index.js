@@ -71,8 +71,8 @@ async function setup() {
 
   //GET ROUND
 
-  // const round = await namespaceWrapper.getRound();
-  // await coreLogic.submitDistributionList(2);
+  const round = await namespaceWrapper.getRound();
+  console.log('ROUND', round);
   //await namespaceWrapper.createDataStorageWallet();
   // console.log("ROUND", round);
   // const dumbJson = {
@@ -92,7 +92,7 @@ async function setup() {
 
   // Audit submissions
 
-  //await coreLogic.auditTask(round - 1);
+  //await coreLogic.auditTask(2865);
 
   // upload distribution list to K2
 
@@ -100,7 +100,7 @@ async function setup() {
 
   // Audit distribution list
 
-  //await coreLogic.auditDistribution(round - 2);
+  await coreLogic.auditDistribution(3528);
 
   // Payout trigger
 

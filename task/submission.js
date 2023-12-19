@@ -18,10 +18,7 @@ class Submission {
     round = await namespaceWrapper.getRound();
     if (!this.kayakTask || !this.kayakTask.isRunning) {
       try {
-        this.kayakTask = await new KayakTask(
-          namespaceWrapper.getRound,
-          round,
-        );
+        this.kayakTask = await new KayakTask(namespaceWrapper.getRound, round);
         console.log('started a new crawler at round', round);
       } catch (e) {
         console.log('error starting crawler', e);
@@ -35,7 +32,7 @@ class Submission {
     console.log('submitTask called with round', roundNumber);
     try {
       console.log('inside try');
-      if (!this.kayakTask || !this.kayakTask.isRunning){
+      if (!this.kayakTask || !this.kayakTask.isRunning) {
         return;
       }
       console.log(
@@ -43,15 +40,17 @@ class Submission {
         'current slot while calling submit',
       );
       const submission = await this.fetchSubmission(roundNumber);
-      if(submission){
+
       console.log('SUBMISSION', submission);
-      await namespaceWrapper.checkSubmissionAndUpdateRound(
-        submission,
-        roundNumber,
-      );
-      console.log('after the submission call');
-      }
-      else {
+
+      if (submission) {
+        console.log('SUBMISSION', submission);
+        await namespaceWrapper.checkSubmissionAndUpdateRound(
+          submission,
+          roundNumber,
+        );
+        console.log('after the submission call');
+      } else {
         console.log('no submission call made as submission is null');
       }
       return submission;
@@ -65,12 +64,16 @@ class Submission {
 
     // fetching round number to store work accordingly
 
-    console.log('IN FETCH SUBMISSION');
+    console.log('IN FETCH SUBMISSION', round);
 
     // The code below shows how you can fetch your stored value from level DB
 
-    const cid = await this.kayakTask.getRoundCID(round);// retrieves the value
+    const cid = await this.kayakTask.getRoundCID(round); // retrieves the value
+
     console.log('VALUE', cid);
+
+    // storing the value in IPFS
+
     return cid;
   }
 }

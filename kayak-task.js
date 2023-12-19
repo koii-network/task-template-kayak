@@ -1,12 +1,14 @@
 const Kayak = require('./adapters/kayak/kayak.js');
 const db = require('./helpers/db');
-const { Web3Storage } = require('web3.storage');
+const { Web3Storage, File } = require('web3.storage');
 const Data = require('./model/data');
 const dotenv = require('dotenv');
 const { default: axios } = require('axios');
 dotenv.config();
 const cron = require('node-cron');
 const moment = require('moment');
+
+const { distribution } = require('./task/distribution');
 
 /**
  * KayakTask is a class that handles the Kayak crawler and validator
@@ -130,10 +132,36 @@ class KayakTask {
    * @returns
    */
   async getRoundCID(roundID) {
-    console.log('starting submission prep for ');
-    let result = await this.adapter.getSubmissionCID(roundID);
-    console.log('returning round CID', result, 'for round', roundID);
-    return result;
+    console.log('ROUND CID FROM GETROUND', roundID);
+    const data = await distribution.computeAverages(roundID);
+
+    console.log('***********DATA***********', data);
+
+    // TODO : CHECK IF THE DATA IS NOT EMPTY
+
+    if (Object.keys(data).length === 0) {
+      console.log('DATA Object is empty');
+    } else {
+      console.log(' DATA Object is not empty');
+
+      const listBuffer = Buffer.from(JSON.stringify(data));
+      const listFile = new File([listBuffer], 'data.json', {
+        type: 'application/json',
+      });
+      // TEST USE
+      const client = new Web3Storage({
+        token: process.env.SECRET_WEB3_STORAGE_KEY,
+      });
+      const cid = await client.put([listFile]);
+
+      console.log('starting submission prep for ');
+      await this.adapter.storeAverageData(roundID, cid);
+      let result = await this.adapter.getSubmissionCID(roundID);
+      console.log('returning round CID', result, 'for round', roundID);
+      return result;
+    }
+
+    // upload the data to IPFS
   }
 
   /**
@@ -197,10 +225,10 @@ class KayakTask {
     }
 
     this.cronJob = cron.schedule(
-      '*/10 * * * *',
+      '*/2 * * * *',
       async () => {
         const currentMinute = parseInt(moment.utc().format('m'), 10);
-        if (currentMinute % 10 === 0) {
+        if (currentMinute % 2 === 0) {
           // Your desired cron task to be executed here
           console.log('Cron job started!');
           await this.crawlLocations(locationURLs, currentMinute);
@@ -214,10 +242,10 @@ class KayakTask {
 
   startCronOnEvenMinute(locationURLs) {
     const currentMinute = parseInt(moment().format('m'), 10);
-    const cronMinute = Math.ceil(currentMinute / 10) * 10; // Round up the current minute to the nearest multiple of 10
+    const cronMinute = Math.ceil(currentMinute / 2) * 2; // Round up the current minute to the nearest multiple of 10
     const nextCronTime = moment()
       .minute(cronMinute)
-      .add(cronMinute <= currentMinute ? 10 : 0, 'minutes'); // If current minute is already a multiple of 10, add 10 minutes
+      .add(cronMinute <= currentMinute ? 2 : 0, 'minutes'); // If current minute is already a multiple of 10, add 10 minutes
 
     const waitTime = nextCronTime.diff(moment(), 'milliseconds');
     console.log(

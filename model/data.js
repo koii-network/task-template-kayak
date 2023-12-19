@@ -95,6 +95,8 @@ class Data {
       id: 'scrape:' + round + ':' + data.timestamp,
       data: data,
     };
+
+    console.log('storing one scrape', item);
     await this.create(item);
     const searchPattern = `scrape:${round}:`;
 
@@ -121,6 +123,19 @@ class Data {
     const regexPattern = new RegExp(`^${searchPattern}`);
     itemListRaw = await this.db.find({ id: regexPattern });
     console.log('itemListRaw', itemListRaw);
+    return itemListRaw;
+  }
+
+  async getAverageList(options) {
+    // doesn't support options or rounds yet?
+    let itemListRaw;
+    console.log('has round', options.round);
+    const searchPattern = `scrapeCidAverageData:${options.round}`;
+
+    // Construct the regular expression dynamically
+    // const regexPattern = new RegExp(`^${searchPattern}`);
+    itemListRaw = await this.db.find({ id: searchPattern });
+    console.log('**********AVERAGE DATA*********', itemListRaw);
     return itemListRaw;
   }
 }

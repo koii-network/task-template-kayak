@@ -1130,13 +1130,15 @@ class NamespaceWrapper {
 
             if (isValid) {
               // check for the submissions_audit_trigger , if it exists then vote true on that otherwise do nothing
+
+              console.log('IN IF', isValid);
               const submissions_audit_trigger =
                 taskAccountDataJSON.submissions_audit_trigger[round];
               console.log('SUBMIT AUDIT TRIGGER', submissions_audit_trigger);
-              // console.log(
-              //   "CANDIDATE PUBKEY CHECK IN AUDIT TRIGGER",
-              //   submissions_audit_trigger[candidatePublicKey]
-              // );
+              console.log(
+                'CANDIDATE PUBKEY CHECK IN AUDIT TRIGGER',
+                submissions_audit_trigger[candidatePublicKey],
+              );
               if (
                 submissions_audit_trigger &&
                 submissions_audit_trigger[candidatePublicKey]
@@ -1160,6 +1162,9 @@ class NamespaceWrapper {
                 round,
               );
               console.log('RESPONSE FROM AUDIT FUNCTION', response);
+            } else if (isValid == undefined) {
+              console.log('IN ELSE', isValid);
+              console.log('DO NOTHING');
             }
           } catch (err) {
             console.log('ERROR IN ELSE CONDITION', err);
@@ -1201,9 +1206,10 @@ class NamespaceWrapper {
           let candidatePublicKey = keys[i];
           console.log('FOR CANDIDATE KEY', candidatePublicKey);
           let candidateKeyPairPublicKey = new PublicKey(keys[i]);
-          if (candidatePublicKey == submitterPubkey) {
-            console.log('YOU CANNOT VOTE ON YOUR OWN DISTRIBUTION SUBMISSIONS');
-          } else {
+          // if (candidatePublicKey == submitterPubkey) {
+          //   console.log('YOU CANNOT VOTE ON YOUR OWN DISTRIBUTION SUBMISSIONS');
+          // } else 
+          {
             try {
               console.log(
                 'DISTRIBUTION SUBMISSION VALUE TO CHECK',
@@ -1223,6 +1229,9 @@ class NamespaceWrapper {
                   'SUBMIT DISTRIBUTION AUDIT TRIGGER',
                   distributions_audit_trigger,
                 );
+
+                //ALREADY COMMENTED
+
                 // console.log(
                 //   "CANDIDATE PUBKEY CHECK IN AUDIT TRIGGER",
                 //   distributions_audit_trigger[candidatePublicKey]
